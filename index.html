@@ -442,7 +442,7 @@ button:active {
           </div>
           
           <div class="bonus-section">
-            <p><strong>Bonus:</strong> Reach the target using only single-letter changes to earn +10 tokens!</p>
+            <p><strong>Bonus:</strong> Reach the target using only single-letter changes to earn +50 points!</p>
           </div>
           
           <button class="start-btn" onclick="startGame()">Start Playing</button>
@@ -603,8 +603,7 @@ function startGame() {
 if (targetWord && newWord === targetWord) {
   const bonusAchieved = onlySingleLetterMoves;
   if (bonusAchieved) {
-    tokens += 10;
-    points += 10; // Make sure to add bonus points
+    points += 50; // Make sure to add bonus points
     renderChain();
   }
   showVictoryModal(true, bonusAchieved);
