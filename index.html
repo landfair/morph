@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Morph</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
@@ -362,6 +365,144 @@ button:active {
 .start-btn:hover {
   background: #2563eb;
 }
+
+
+
+.chain-visual h4 {
+  margin-bottom: 10px;
+  color: #3b82f6;
+}
+
+#modalChainDisplay {
+  font-family: monospace;
+  font-size: 20px;  /* Increased from 16px */
+  line-height: 1.2;
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+  white-space: pre-line;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.chain-visual {
+  margin: 30px 0;
+  text-align: center;
+}
+.input-word {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.input-letter-box {
+  width: 50px;
+  height: 50px;
+  border: 3px solid #3b82f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: white;
+  cursor: text;
+  position: relative;
+}
+
+.input-letter-box.active {
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+.input-letter-box.filled {
+  background: #f3f4f6;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+    font-size: 16px; /* Prevents zoom on input focus */
+  }
+  
+  #game {
+    max-width: 100%;
+    padding: 20px 15px;
+    margin: 10px auto;
+  }
+  
+  h1 {
+    font-size: 28px;
+    margin-bottom: 15px;
+  }
+  
+  .letter-box, .input-letter-box {
+    width: 45px;
+    height: 45px;
+    font-size: 20px;
+  }
+  
+  .word {
+    gap: 3px;
+  }
+  
+  .input-word {
+    gap: 3px;
+    margin: 15px 0;
+  }
+  
+  button {
+    padding: 14px 28px;
+    font-size: 18px;
+    min-height: 44px; /* Apple's recommended touch target */
+  }
+  
+  .victory-modal, .welcome-modal {
+    padding: 20px;
+  }
+  
+  .victory-content, .welcome-content {
+    max-width: 90vw;
+    padding: 25px;
+  }
+  
+  .victory-stats {
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .share-buttons {
+    gap: 15px;
+  }
+  
+  .share-btn {
+    min-height: 44px;
+    padding: 12px 24px;
+  }
+  
+  #modalChainDisplay {
+    font-size: 18px;
+    padding: 15px;
+  }
+}
+
+/* Prevent zoom on input focus */
+.input-letter-box:focus {
+  outline: none;
+}
+
+/* Smooth scrolling for iOS */
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix iOS button styling */
+button {
+  -webkit-appearance: none;
+  border-radius: 8px;
+}
   </style>
 </head>
 <body>
@@ -369,6 +510,7 @@ button:active {
         <h1>Morph</h1>
         
         <div class="game-info">
+        <div class="tokens">Puzzle #<span id="puzzleNumber">1</span></div>
           <div class="tokens">Tokens left: <span id="tokens">5</span></div>
           <div class="tokens">Points: <span id="points">0</span></div>
           <div class="target">Target word: <span id="target"></span></div>
@@ -376,7 +518,13 @@ button:active {
         
         <div class="word-chain" id="chain"></div>
         
-        <input type="text" id="newWord" maxlength="5" placeholder="New word">
+        <div class="input-word" id="inputWord">
+            <div class="input-letter-box" data-index="0"></div>
+            <div class="input-letter-box" data-index="1"></div>
+            <div class="input-letter-box" data-index="2"></div>
+            <div class="input-letter-box" data-index="3"></div>
+            <div class="input-letter-box" data-index="4"></div>
+          </div>
         <button onclick="submitWord()">Submit</button>
         <div id="message" class="error"></div>
       </div>
@@ -402,12 +550,16 @@ button:active {
             </div>
           </div>
           
+          <div class="chain-visual">
+            <div id="modalChainDisplay"></div>
+          </div>
+          
           <div class="share-section">
             <p>Share your results:</p>
             <div class="share-buttons">
-              <button class="share-btn" onclick="shareToTwitter()">Twitter</button>
-              <button class="share-btn" onclick="copyToClipboard()">Copy</button>
-            </div>
+                <button class="share-btn" onclick="shareToText()">Text</button>
+                <button class="share-btn" onclick="copyToClipboard()">Copy</button>
+              </div>
           </div>
           
           <button class="close-btn" onclick="closeVictoryModal()">Play Again</button>
@@ -451,10 +603,68 @@ button:active {
 
   <script>
 
+
+
+function getDailyPuzzle() {
+  // Get current date in Eastern Time
+  const now = new Date();
+  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  
+  // If it's before 10 PM, use today's date. If after 10 PM, use tomorrow's date
+  const puzzleDate = new Date(easternTime);
+  if (easternTime.getHours() >= 22) { // 22 = 10 PM in 24-hour format
+    puzzleDate.setDate(puzzleDate.getDate() + 1);
+  }
+  
+  // Create seed from date (YYYYMMDD format)
+  const year = puzzleDate.getFullYear();
+  const month = String(puzzleDate.getMonth() + 1).padStart(2, '0');
+  const day = String(puzzleDate.getDate()).padStart(2, '0');
+  const dateString = `${year}${month}${day}`;
+  
+  // Simple hash function to convert date to number
+  let hash = 0;
+  for (let i = 0; i < dateString.length; i++) {
+    const char = dateString.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  
+  // Use absolute value and modulo to get index
+  const startingWords = Object.keys(targetMap);
+  const index = Math.abs(hash) % startingWords.length;
+  const startWord = startingWords[index];
+  
+  return {
+    start: startWord,
+    target: targetMap[startWord]
+  };
+}
+
+
+
+function getPuzzleNumber() {
+  // Calculate days since epoch (Jan 1, 1970) adjusted for 10 PM Eastern cutoff
+  const now = new Date();
+  const easternTime = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  
+  const puzzleDate = new Date(easternTime);
+  if (easternTime.getHours() >= 22) {
+    puzzleDate.setDate(puzzleDate.getDate() + 1);
+  }
+  
+  const epoch = new Date('1970-01-01');
+  const daysSinceEpoch = Math.floor((puzzleDate - epoch) / (1000 * 60 * 60 * 24));
+  
+  return daysSinceEpoch;
+}
+
     // Show welcome modal on page load
-window.addEventListener('load', function() {
+    window.addEventListener('load', function() {
   document.getElementById('welcomeModal').style.display = 'flex';
 });
+
+
 
 function startGame() {
   document.getElementById('welcomeModal').style.display = 'none';
@@ -468,35 +678,26 @@ function startGame() {
 
     // Map each starting word to a target word
     const targetMap = {
-  'heart': 'beefy',
-  'stone': 'while',
-  'later': 'livid',
-  'guilt': 'built',
-  'bread': 'toast',
-  'black': 'white',
-  'night': 'light',
-  'water': 'steam',
-  'horse': 'zebra',
-  'small': 'large',
-  'happy': 'smile',
-  'angry': 'frown',
-  'quiet': 'guile',
-  'clean': 'dirty',
-  'rough': 'smooth',
-  'sharp': 'blunt',
-  'young': 'elder',
-  'plant': 'bloom',
-  'mouse': 'house',
-  'beach': 'shore'
+  'belly': 'tacks',
+  'diner': 'farts',
+  'sunny': 'bunko',
+  'river': 'water',
+  'water': 'dives',
+  'dives': 'limps',
+  'tiger': 'bites',
+  'toast': 'roost',
+  'lover': 'hater',
+  'sunny': 'hunts'
 };
+
+// Get today's puzzle
+const dailyPuzzle = getDailyPuzzle();
+const startWord = dailyPuzzle.start;
+const targetWord = dailyPuzzle.target;
+
 
       // Normalize dictionary to lowercase for validation
       const dictionarySet = new Set(dictionary.map(w => String(w).toLowerCase().trim()));
-
-    // Pick random starting word from the keys of targetMap
-        const startingWords = Object.keys(targetMap);
-        const startWord = startingWords[Math.floor(Math.random() * startingWords.length)];
-        const targetWord = targetMap[startWord];
 
     // Show the target word if defined
     if (targetWord) {
@@ -538,6 +739,9 @@ function startGame() {
         document.getElementById("tokens").innerText = tokens;
         document.getElementById("points").innerText = points;
         }
+    
+        document.getElementById("puzzleNumber").innerText = getPuzzleNumber();
+
 
     function wordDiff(word1, word2) {
       let diff = 0;
@@ -548,10 +752,10 @@ function startGame() {
     }
 
     function submitWord() {
-      const input = document.getElementById("newWord");
+      
       const message = document.getElementById("message");
 
-      const raw = input.value.trim();
+      const raw = inputLetters.join('');
       const newWord = raw.toLowerCase();
       message.textContent = "";
 
@@ -594,18 +798,16 @@ function startGame() {
       tokens -= cost;
         chain.push(newWord);
         points += 10;  // Add this line
-        input.value = "";
       renderChain();
 
       
 // When target is reached
-// In submitWord(), when target is reached:
 if (targetWord && newWord === targetWord) {
   const bonusAchieved = onlySingleLetterMoves;
   if (bonusAchieved) {
-    points += 50; // Make sure to add bonus points
-    renderChain();
+    points += 50; // Add bonus points first
   }
+  renderChain(); // Update the display with new points
   showVictoryModal(true, bonusAchieved);
   return;
 }
@@ -614,6 +816,8 @@ if (targetWord && newWord === targetWord) {
 if (tokens === 0) {
   showVictoryModal(false, false);
 }
+
+clearInput();
     }
 
     // Add this function after your other functions
@@ -629,20 +833,45 @@ if (tokens === 0) {
   wordCount.textContent = chain.length;
   
   if (reachedTarget) {
-    if (bonusAchieved) {
-      title.textContent = "🎉 Amazing!";
-      message.textContent = "Perfect solve with single-letter moves!";
-      bonusText.textContent = "+10";
-    } else {
-      title.textContent = "Well Done!";
-      message.textContent = `You morphed ${chain[0]} into ${targetWord}!`;
-      bonusText.textContent = "None";
-    }
+  if (bonusAchieved) {
+    title.textContent = "🎉 Amazing!";
+    message.textContent = "Perfect solve with single-letter moves!";
+    bonusText.textContent = "+50";
   } else {
-    title.textContent = "Game Over";
-    message.textContent = "Out of tokens!";
+    title.textContent = "Well Done!";
+    message.textContent = `You morphed ${chain[0]} into ${targetWord}!`;
     bonusText.textContent = "None";
   }
+} else {
+  title.textContent = `You earned ${points} points!`;
+  message.textContent = `Nice try! You got ${chain.length - 1} step${chain.length - 1 === 1 ? '' : 's'} toward ${targetWord}.`;
+  bonusText.textContent = "None";
+}
+
+// Replace the modalChainDisplay section with:
+const modalChainDisplay = document.getElementById('modalChainDisplay');
+let visualChain = '';
+
+chain.forEach((word, wordIndex) => {
+  if (wordIndex === 0) {
+    // Skip the starting word in visual representation
+    return;
+  }
+  
+  const prevWord = chain[wordIndex - 1];
+  let wordSquares = '';
+  
+  for (let i = 0; i < 5; i++) {
+    if (word[i] !== prevWord[i]) {
+      wordSquares += '🟦';
+    } else {
+      wordSquares += '⬜';
+    }
+  }
+  visualChain += wordSquares + '\n';
+});
+
+modalChainDisplay.textContent = visualChain.trim();
   
   modal.style.display = 'flex';
 }
@@ -652,10 +881,15 @@ function closeVictoryModal() {
   location.reload(); // Reset the game
 }
 
-function shareToTwitter() {
+function shareToText() {
   const text = generateShareText();
-  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank');
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  
+  if (isIOS) {
+    window.location.href = `sms:&body=${encodeURIComponent(text)}`;
+  } else {
+    window.open(`sms:?body=${encodeURIComponent(text)}`);
+  }
 }
 
 function copyToClipboard() {
@@ -666,19 +900,140 @@ function copyToClipboard() {
 }
 
 function generateShareText() {
-  const squares = chain.map((word, index) => {
-    if (index === 0) return '⬜';
-    if (word === targetWord) return '🎯';
-    return '🟦';
-  }).join('');
+  // Create visual representation of the word chain
+  let visualChain = '';
   
-  return `Morph ${chain[0]} → ${targetWord}\n` +
-    `Score: ${points} points (${chain.length} words)\n` +
-    `${squares}`;
+  chain.forEach((word, wordIndex) => {
+    if (wordIndex === 0) {
+      // Starting word - all white squares
+      visualChain += '⬜⬜⬜⬜⬜\n';
+    } else {
+      // Compare with previous word to show changed positions
+      const prevWord = chain[wordIndex - 1];
+      let wordSquares = '';
+      
+      for (let i = 0; i < 5; i++) {
+        if (word[i] !== prevWord[i]) {
+          wordSquares += '🟦'; // Blue for changed letters
+        } else {
+          wordSquares += '⬜'; // White for unchanged letters
+        }
+      }
+      visualChain += wordSquares + '\n';
+    }
+  });
+  
+  const puzzleNum = getPuzzleNumber();
+  
+  return `Morph #${puzzleNum}\n` +
+    `${chain[0].toUpperCase()} → ${targetWord.toUpperCase()}\n` +
+    `${points} points in ${chain.length} moves\n\n` +
+    visualChain + '\n' +
+    `Play at: https://landfair.github.io/morph/`;
+}
+
+let currentInputIndex = 0;
+let inputLetters = ['', '', '', '', ''];
+
+// Add touch event support to the input initialization
+function initializeInput() {
+  const boxes = document.querySelectorAll('.input-letter-box');
+  boxes[0].classList.add('active');
+  
+  // Handle keyboard input
+  document.addEventListener('keydown', handleKeyInput);
+  
+  // Handle clicking/touching on boxes
+  boxes.forEach((box, index) => {
+    box.addEventListener('click', () => {
+      setActiveInput(index);
+    });
+    
+    // Add touch support
+    box.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      setActiveInput(index);
+    });
+  });
+  
+  // Prevent iOS from zooming when tapping input boxes
+  document.addEventListener('touchstart', function(e) {
+    if (e.target.classList.contains('input-letter-box')) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+}
+
+function handleKeyInput(event) {
+  const key = event.key;
+  
+  // Only handle single letter keys
+  if (key.length === 1 && key >= 'a' && key <= 'z') {
+    enterLetter(key);
+    event.preventDefault();
+  } else if (key.length === 1 && key >= 'A' && key <= 'Z') {
+    enterLetter(key.toLowerCase());
+    event.preventDefault();
+  } else if (key === 'Backspace') {  // Note: capital B
+    deleteLetter();
+    event.preventDefault();
+  } else if (key === 'Enter') {  // Note: capital E
+    submitWord();
+    event.preventDefault();
+  }
+}
+
+function enterLetter(letter) {
+  if (currentInputIndex < 5) {
+    inputLetters[currentInputIndex] = letter;
+    updateInputDisplay();
+    
+    if (currentInputIndex < 4) {
+      setActiveInput(currentInputIndex + 1);
+    }
+  }
+}
+
+function deleteLetter() {
+  if (currentInputIndex > 0 && inputLetters[currentInputIndex] === '') {
+    setActiveInput(currentInputIndex - 1);
+  }
+  
+  inputLetters[currentInputIndex] = '';
+  updateInputDisplay();
+}
+
+function setActiveInput(index) {
+  const boxes = document.querySelectorAll('.input-letter-box');
+  boxes.forEach(box => box.classList.remove('active'));
+  
+  currentInputIndex = index;
+  boxes[currentInputIndex].classList.add('active');
+}
+
+function updateInputDisplay() {
+  const boxes = document.querySelectorAll('.input-letter-box');
+  boxes.forEach((box, index) => {
+    box.textContent = inputLetters[index].toUpperCase();
+    if (inputLetters[index]) {
+      box.classList.add('filled');
+    } else {
+      box.classList.remove('filled');
+    }
+  });
+}
+
+function clearInput() {
+  inputLetters = ['', '', '', '', ''];
+  currentInputIndex = 0;
+  updateInputDisplay();
+  setActiveInput(0);
 }
 
     // Init
     renderChain();
+    // Initialize input after DOM is loaded
+initializeInput();
   </script>
 </body>
 </html>
