@@ -422,40 +422,24 @@ button:active {
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
+  .welcome-modal, .victory-modal {
+    padding: 10px;
+    align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
   .welcome-content, .victory-content {
     max-width: 95vw;
     max-height: 90vh;
     overflow-y: auto;
-    padding: 20px;
-    margin: 20px auto;
+    padding: 20px 15px;
+    margin: 10px auto;
   }
+  
   .welcome-content h1 {
     font-size: 24px;
-    margin-bottom: 10px;
-  }
-  
-  .tagline {
-    font-size: 16px;
-    margin-bottom: 20px;
-  }
-  
-  .rules-section, .example-section, .bonus-section {
     margin-bottom: 15px;
-  }
-  
-  .rules-list li {
-    padding: 6px 0;
-    font-size: 14px;
-  }
-  
-  .example-chain {
-    font-size: 14px;
-  }
-  
-  .start-btn {
-    padding: 12px 30px;
-    font-size: 16px;
-    margin-top: 15px;
   }
 }
   
@@ -542,11 +526,14 @@ button {
         <h1>Morph</h1>
         
         <div class="game-info">
-        <div class="tokens">Puzzle #<span id="puzzleNumber">1</span></div>
-          <div class="tokens">Tokens left: <span id="tokens">5</span></div>
-          <div class="tokens">Points: <span id="points">0</span></div>
-          <div class="target">Target word: <span id="target"></span></div>
-        </div>
+            <div class="tokens">Puzzle #<span id="puzzleNumber">1</span></div>
+            <div class="tokens">Tokens left: <span id="tokens">5</span></div>
+            <div class="tokens">Points: <span id="points">0</span></div>
+            <div class="target">Target word: <span id="target"></span></div>
+            <div style="font-size: 14px; color: #6b7280; margin-top: 10px; font-style: italic;">
+              Change exactly one letter per move
+            </div>
+          </div>
         
         <div class="word-chain" id="chain"></div>
         
@@ -558,8 +545,13 @@ button {
             <div class="input-letter-box" data-index="4"></div>
           </div>
           <input type="text" id="hiddenInput" style="position: absolute; left: -9999px; opacity: 0;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <button onclick="submitWord()">Submit</button>
-        <div id="message" class="error"></div>
+          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+            <button onclick="submitWord()">Submit</button>
+            <button onclick="undoWord()" style="background: #6b7280;">Undo</button>
+            <button onclick="showClue()" style="background: #f59e0b;">Clue</button>
+          </div>
+
+<div id="message" class="error"></div>
       </div>
 
       <div class="victory-modal" id="victoryModal" style="display: none;">
@@ -576,6 +568,10 @@ button {
             <div class="stat-item">
               <div class="stat-value" id="wordCount">0</div>
               <div class="stat-label">Words</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value" id="cluesUsedStat">0</div>
+              <div class="stat-label">Clues</div>
             </div>
             <div class="stat-item">
               <div class="stat-value" id="bonusText">-</div>
@@ -595,43 +591,53 @@ button {
               </div>
           </div>
           
-          <button class="close-btn" onclick="closeVictoryModal()">Play Again</button>
-        </div>
+          <div id="victoryCountdown" style="text-align: center; padding: 20px;">
+            <p style="color: #6b7280; margin-bottom: 10px;">Next puzzle available in:</p>
+            <div id="victoryCountdownTime" style="font-size: 20px; font-weight: bold; color: #3b82f6; font-family: monospace;"></div>
+            <p style="color: #6b7280; font-size: 14px; margin-top: 10px;">Come back tomorrow for a new challenge!</p>
+          </div>        </div>
       </div>
 
       <div class="welcome-modal" id="welcomeModal">
         <div class="welcome-content">
-          <h1>Morph</h1>
-          <p class="tagline">Transform one word into another</p>
-          
-          <div class="rules-section">
-            <h3>How to Play</h3>
-            <ul class="rules-list">
-              <li>Start with the given word</li>
-              <li>Change letters to make new valid words</li>
-              <li>Each letter changed costs 1 token</li>
-              <li>Reach the target word before running out of tokens</li>
-            </ul>
-          </div>
-          
-          <div class="example-section">
-            <h3>Example</h3>
-            <div class="example-chain">
-              <span class="example-word">HEART</span>
-              <span class="arrow">→</span>
-              <span class="example-word">HEARS</span>
-              <span class="arrow">→</span>
-              <span class="example-word">BEARS</span>
-              <span class="cost">(costs 2 tokens)</span>
+            <h1>Morph</h1>
+            
+            <div style="background: #dc2626; color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+              <p style="font-size: 18px; font-weight: bold; margin: 0;">
+                YOUR GOAL
+              </p>
+              <p style="font-size: 16px; margin: 8px 0 0 0;">
+                Change <span id="welcomeStart" style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">RIVER</span> into <span id="welcomeTarget" style="background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">WATER</span>
+              </p>
+              <p style="margin: 8px 0 0 0; font-size: 14px; font-weight: bold;">
+                ONE LETTER AT A TIME ONLY
+              </p>
             </div>
+            
+            <div style="font-size: 14px; line-height: 1.4; margin-bottom: 15px; text-align: left;">
+              <strong>Rules:</strong><br>
+              • Change exactly ONE letter per move<br>
+              • Must be a real English word<br>
+              • 5 tokens total (1 per move)<br>
+              • 25 pts/word, +500 to finish, +100/token left
+            </div>
+            
+            <div style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+              <div style="font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap;">
+                <span style="background: white; padding: 2px 6px; border-radius: 3px; font-family: monospace;">RIVER</span>
+                <span>→</span>
+                <span style="background: white; padding: 2px 6px; border-radius: 3px; font-family: monospace;">RIPER</span>
+                <span>→</span>
+                <span style="background: white; padding: 2px 6px; border-radius: 3px; font-family: monospace;">WIPER</span>
+                <span>→</span>
+                <span style="background: white; padding: 2px 6px; border-radius: 3px; font-family: monospace;">WATER</span>
+              </div>
+            </div>
+            
+            <button class="start-btn" onclick="startGame()" style="background: #dc2626; color: white; font-size: 18px; font-weight: bold; padding: 16px 40px; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); width: 100%; max-width: 250px;">
+             I'm ready!
+            </button>
           </div>
-          
-          <div class="bonus-section">
-            <p><strong>Bonus:</strong> Reach the target using only single-letter changes to earn +50 points!</p>
-          </div>
-          
-          <button class="start-btn" onclick="startGame()">Start Playing</button>
-        </div>
       </div>
 
   <script>
@@ -645,7 +651,7 @@ function getDailyPuzzle() {
   
   // If it's before 10 PM, use today's date. If after 10 PM, use tomorrow's date
   const puzzleDate = new Date(easternTime);
-  if (easternTime.getHours() >= 22) { // 22 = 10 PM in 24-hour format
+  if (easternTime.getHours() >= 22) {
     puzzleDate.setDate(puzzleDate.getDate() + 1);
   }
   
@@ -660,17 +666,19 @@ function getDailyPuzzle() {
   for (let i = 0; i < dateString.length; i++) {
     const char = dateString.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+    hash = hash & hash;
   }
   
-  // Use absolute value and modulo to get index
-  const startingWords = Object.keys(targetMap);
+  // Use absolute value and modulo to get index from available pathways
+  const startingWords = Object.keys(pathways);
   const index = Math.abs(hash) % startingWords.length;
   const startWord = startingWords[index];
+  const pathway = pathways[startWord];
   
   return {
     start: startWord,
-    target: targetMap[startWord]
+    target: pathway[pathway.length - 1],
+    pathway: pathway
   };
 }
 
@@ -694,15 +702,26 @@ function getPuzzleNumber() {
 
     // Show welcome modal on page load
     window.addEventListener('load', function() {
+  updateWelcomeModal();
+  
+  if (hasCompletedToday()) {
+    showCompletionMessage();
+  }
+  
   document.getElementById('welcomeModal').style.display = 'flex';
 });
 
 
 
 function startGame() {
+  if (hasCompletedToday()) {
+    showCompletionMessage();
+    return;
+  }
+  
+  gameStarted = true;
   document.getElementById('welcomeModal').style.display = 'none';
   setActiveInput(0);
-  // Focus the hidden input to show keyboard
   setTimeout(() => {
     document.getElementById('hiddenInput').focus();
   }, 100);
@@ -713,17 +732,11 @@ function startGame() {
     ];
 
     // Map each starting word to a target word
-    const targetMap = {
-  'belly': 'tacks',
-  'diner': 'farts',
-  'sunny': 'bunko',
-  'river': 'water',
-  'water': 'dives',
-  'dives': 'limps',
-  'tiger': 'bites',
-  'toast': 'roost',
-  'lover': 'hater',
-  'sunny': 'hunts'
+    const pathways = {
+  'river': ['river', 'raver', 'waver', 'water'],
+  'belly': ['belly', 'bells', 'belts', 'delts', 'delta'],
+  'diner': ['diner', 'finer', 'fines', 'fires', 'fares'],
+  // Add more complete pathways here
 };
 
 // Get today's puzzle
@@ -733,19 +746,22 @@ const targetWord = dailyPuzzle.target;
 
 
       // Normalize dictionary to lowercase for validation
-      const dictionarySet = new Set(dictionary.map(w => String(w).toLowerCase().trim()));
-
+      const dictionarySet = new Set(dictionary.filter(w => w && typeof w === 'string').map(w => w.toLowerCase().trim()));
     // Show the target word if defined
-    if (targetWord) {
-      document.getElementById("target").innerText = targetWord;
-    } else {
-      document.getElementById("target").innerText = "(none)";
-    }
+
+if (targetWord) {
+  document.getElementById("target").innerText = targetWord.toUpperCase();
+} else {
+  document.getElementById("target").innerText = "(none)";
+}
 
     let chain = [startWord];
     let tokens = 5;
     let points = 0;
-    let onlySingleLetterMoves = true; // track bonus condition
+    let cluesUsed = 0;
+    let nextClueCost = 100;
+    let gameCompleted = false;
+    let gameStarted = false;
 
     // Render chain
     function renderChain() {
@@ -787,10 +803,79 @@ const targetWord = dailyPuzzle.target;
       return diff;
     }
 
-    function submitWord() {
-      
-      const message = document.getElementById("message");
+    function showClue() {
+  // Check if player has enough points for the clue
+  if (points < nextClueCost) {
+    const message = document.getElementById("message");
+    message.textContent = `Need ${nextClueCost} points for clue (you have ${points})`;
+    message.style.color = "#dc2626";
+    
+    setTimeout(() => {
+      message.textContent = "";
+    }, 3000);
+    return;
+  }
 
+  const dailyPuzzle = getDailyPuzzle();
+  const currentWord = chain[chain.length - 1];
+  const pathway = dailyPuzzle.pathway;
+  
+  // Find current position in pathway
+  const currentIndex = pathway.indexOf(currentWord);
+  
+  if (currentIndex !== -1 && currentIndex < pathway.length - 1) {
+    const nextWord = pathway[currentIndex + 1];
+    
+    // Deduct points and update counters
+    points -= nextClueCost;
+    cluesUsed++;
+    nextClueCost += 100; // Increase cost for next clue
+    
+    // Update display
+    renderChain();
+    
+    const message = document.getElementById("message");
+    message.textContent = `Clue: Try "${nextWord.toUpperCase()}" (Cost: ${nextClueCost - 100} points)`;
+    message.style.color = "#3b82f6";
+    
+    setTimeout(() => {
+      message.textContent = "";
+      message.style.color = "#dc2626";
+    }, 5000);
+  } else {
+    const message = document.getElementById("message");
+    message.textContent = "No clue available";
+    message.style.color = "#6b7280";
+    
+    setTimeout(() => {
+      message.textContent = "";
+      message.style.color = "#dc2626";
+    }, 2000);
+  }
+}
+
+function findNextValidWord(fromWord, toWord) {
+  // Simple strategy: find a word that changes one letter and gets closer to target
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+  
+  for (let pos = 0; pos < 5; pos++) {
+    for (let char of alphabet) {
+      if (char === fromWord[pos]) continue;
+      
+      const testWord = fromWord.substring(0, pos) + char + fromWord.substring(pos + 1);
+      
+      // Check if it's a valid dictionary word and not already used
+      if (dictionarySet.has(testWord) && !chain.includes(testWord)) {
+        return testWord;
+      }
+    }
+  }
+  
+  return null; // No valid next word found
+}
+
+    function submitWord() {
+      const message = document.getElementById("message");
       const raw = inputLetters.join('');
       const newWord = raw.toLowerCase();
       message.textContent = "";
@@ -821,39 +906,59 @@ const targetWord = dailyPuzzle.target;
         return;
       }
 
+      // Only allow 1-token moves
+      if (cost !== 1) {
+        message.textContent = "You can only change one letter at a time.";
+        return;
+      }
+
       if (cost > tokens) {
         message.textContent = `Not enough tokens (need ${cost}).`;
         return;
       }
 
-      // track bonus condition
-      if (cost > 1) {
-        onlySingleLetterMoves = false;
-      }
-
       tokens -= cost;
-        chain.push(newWord);
-        points += 10;  // Add this line
+      chain.push(newWord);
+      points += 25;
       renderChain();
 
-      
+     // When target is reached
 // When target is reached
-if (targetWord && newWord === targetWord) {
-  const bonusAchieved = onlySingleLetterMoves;
-  if (bonusAchieved) {
-    points += 50; // Add bonus points first
-  }
-  renderChain(); // Update the display with new points
-  showVictoryModal(true, bonusAchieved);
-  return;
-}
+if (targetWord && newWord.toLowerCase() === targetWord.toLowerCase()) {        // Add bonus for completion and remaining tokens
+        points += 500; // Completion bonus
+        points += tokens * 100; // Remaining token bonus
+        renderChain();
+        showVictoryModal(true, true);
+        return;
+        }
 
-// When out of tokens:
-if (tokens === 0) {
-  showVictoryModal(false, false);
-}
+      // When out of tokens:
+      if (tokens === 0) {
+        showVictoryModal(false, false);
+      }
 
-clearInput();
+      clearInput();
+    }
+
+    function undoWord() {
+      if (chain.length <= 1) {
+        return; // Can't undo the starting word
+      }
+      
+      chain.pop();
+      tokens += 1; // Always add 1 token back since we only allow 1-token moves
+      points -= 25; // Remove the points for that word
+      renderChain();
+      
+      const message = document.getElementById("message");
+      message.textContent = "Move undone.";
+      message.style.color = "#16a34a"; // Green color for success message
+      
+      // Clear the message after 2 seconds
+      setTimeout(() => {
+        message.textContent = "";
+        message.style.color = "#dc2626"; // Reset to red for error messages
+      }, 2000);
     }
 
     // Add this function after your other functions
@@ -866,22 +971,15 @@ clearInput();
   const bonusText = document.getElementById('bonusText');
   
   finalScore.textContent = points;
-  wordCount.textContent = chain.length;
+wordCount.textContent = chain.length;
+document.getElementById('cluesUsedStat').textContent = cluesUsed;
   
   if (reachedTarget) {
-  if (bonusAchieved) {
-    title.textContent = "🎉 Amazing!";
-    message.textContent = "Perfect solve with single-letter moves!";
-    bonusText.textContent = "+50";
-  } else {
-    title.textContent = "Well Done!";
-    message.textContent = `You morphed ${chain[0]} into ${targetWord}!`;
-    bonusText.textContent = "None";
-  }
-} else {
-  title.textContent = `You earned ${points} points!`;
-  message.textContent = `Nice try! You got ${chain.length - 1} step${chain.length - 1 === 1 ? '' : 's'} toward ${targetWord}.`;
-  bonusText.textContent = "None";
+  title.textContent = "🎉 Amazing!";
+  message.textContent = `You morphed ${chain[0]} into ${targetWord}!`;
+  const completionBonus = 500;
+  const tokenBonus = (tokens * 100);
+  bonusText.textContent = `+${completionBonus + tokenBonus}`;
 }
 
 // Replace the modalChainDisplay section with:
@@ -910,11 +1008,78 @@ chain.forEach((word, wordIndex) => {
 modalChainDisplay.textContent = visualChain.trim();
   
   modal.style.display = 'flex';
+  markCompletedToday(); // Add this line
+
+}
+
+function showCompletionMessage() {
+  const welcomeContent = document.querySelector('.welcome-content');
+  const time = getTimeUntilNextPuzzle();
+  
+  welcomeContent.innerHTML = `
+    <h1>Morph</h1>
+    <div style="background: #16a34a; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      <p style="font-size: 18px; font-weight: bold; margin: 0 0 10px 0;">
+        Puzzle Complete!
+      </p>
+      <p style="margin: 0; font-size: 16px;">
+        You've already completed today's puzzle.
+      </p>
+    </div>
+    
+    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      <p style="font-size: 16px; font-weight: bold; margin: 0 0 10px 0; color: #1a1a1a;">
+        Next puzzle available in:
+      </p>
+      <div id="countdown" style="font-size: 24px; font-weight: bold; color: #3b82f6; font-family: monospace;">
+        ${formatCountdown(time)}
+      </div>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px; margin: 0;">
+      Come back tomorrow for a new word morphing challenge!
+    </p>
+  `;
+  
+  // Start countdown timer
+  startCountdownTimer();
+}
+
+function startCountdownTimer() {
+  const countdownElement = document.getElementById('countdown');
+  if (!countdownElement) return;
+  
+  const timer = setInterval(() => {
+    const time = getTimeUntilNextPuzzle();
+    countdownElement.textContent = formatCountdown(time);
+    
+    if (time.totalMs <= 0) {
+      clearInterval(timer);
+      location.reload(); // Refresh to show new puzzle
+    }
+  }, 1000);
 }
 
 function closeVictoryModal() {
-  document.getElementById('victoryModal').style.display = 'none';
-  location.reload(); // Reset the game
+  const modal = document.getElementById('victoryModal');
+  modal.style.display = 'none';
+  
+  // Start countdown in victory modal
+  const time = getTimeUntilNextPuzzle();
+  document.getElementById('victoryCountdownTime').textContent = formatCountdown(time);
+  
+  const timer = setInterval(() => {
+    const time = getTimeUntilNextPuzzle();
+    const countdownElement = document.getElementById('victoryCountdownTime');
+    if (countdownElement) {
+      countdownElement.textContent = formatCountdown(time);
+    }
+    
+    if (time.totalMs <= 0) {
+      clearInterval(timer);
+      location.reload();
+    }
+  }, 1000);
 }
 
 function shareToText() {
@@ -961,11 +1126,12 @@ function generateShareText() {
   
   const puzzleNum = getPuzzleNumber();
   
-  return `Morph #${puzzleNum}\n` +
-    `${chain[0].toUpperCase()} → ${targetWord.toUpperCase()}\n` +
-    `${points} points in ${chain.length} moves\n\n` +
-    visualChain + '\n' +
-    `Play at: https://landfair.github.io/morph/`;
+  const clueText = cluesUsed > 0 ? ` (${cluesUsed} clue${cluesUsed > 1 ? 's' : ''})` : '';
+return `Morph #${puzzleNum}\n` +
+  `${chain[0].toUpperCase()} → ${targetWord.toUpperCase()}\n` +
+  `${points} points in ${chain.length} moves${clueText}\n\n` +
+  visualChain + '\n' +
+  `Play at: https://landfair.github.io/morph/`;
 }
 
 let currentInputIndex = 0;
@@ -1069,6 +1235,13 @@ function setActiveInput(index) {
   boxes[currentInputIndex].classList.add('active');
 }
 
+// Add this function after the getDailyPuzzle function
+function updateWelcomeModal() {
+  const dailyPuzzle = getDailyPuzzle();
+  document.getElementById('welcomeStart').textContent = dailyPuzzle.start.toUpperCase();
+  document.getElementById('welcomeTarget').textContent = dailyPuzzle.target.toUpperCase();
+}
+
 function updateInputDisplay() {
   const boxes = document.querySelectorAll('.input-letter-box');
   boxes.forEach((box, index) => {
@@ -1086,6 +1259,36 @@ function clearInput() {
   currentInputIndex = 0;
   updateInputDisplay();
   setActiveInput(0);
+}
+
+function hasCompletedToday() {
+  const puzzleNum = getPuzzleNumber();
+  const completedPuzzle = localStorage.getItem('morphCompletedPuzzle');
+  return completedPuzzle === puzzleNum.toString();
+}
+
+function markCompletedToday() {
+  const puzzleNum = getPuzzleNumber();
+  localStorage.setItem('morphCompletedPuzzle', puzzleNum.toString());
+}
+
+function getTimeUntilNextPuzzle() {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0); // Set to midnight
+  
+  const timeRemaining = tomorrow - now;
+  
+  const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+  const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+  
+  return { hours, minutes, seconds, totalMs: timeRemaining };
+}
+
+function formatCountdown(time) {
+  return `${String(time.hours).padStart(2, '0')}:${String(time.minutes).padStart(2, '0')}:${String(time.seconds).padStart(2, '0')}`;
 }
 
     // Init
