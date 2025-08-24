@@ -804,18 +804,6 @@ if (targetWord) {
     }
 
     function showClue() {
-  // Check if player has enough points for the clue
-  if (points < nextClueCost) {
-    const message = document.getElementById("message");
-    message.textContent = `Need ${nextClueCost} points for clue (you have ${points})`;
-    message.style.color = "#dc2626";
-    
-    setTimeout(() => {
-      message.textContent = "";
-    }, 3000);
-    return;
-  }
-
   const dailyPuzzle = getDailyPuzzle();
   const currentWord = chain[chain.length - 1];
   const pathway = dailyPuzzle.pathway;
@@ -826,7 +814,7 @@ if (targetWord) {
   if (currentIndex !== -1 && currentIndex < pathway.length - 1) {
     const nextWord = pathway[currentIndex + 1];
     
-    // Deduct points and update counters
+    // Deduct points (allow negative scores)
     points -= nextClueCost;
     cluesUsed++;
     nextClueCost += 100; // Increase cost for next clue
@@ -919,7 +907,7 @@ function findNextValidWord(fromWord, toWord) {
 
       tokens -= cost;
       chain.push(newWord);
-      points += 25;
+      points -= cost;  // Subtract the cost of the move
       renderChain();
 
      // When target is reached
