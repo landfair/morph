@@ -773,8 +773,9 @@
               <strong>Rules:</strong><br>
               • Change exactly ONE letter per move<br>
               • Must be a real English word<br>
-              • 5 tokens total (1 per move)<br>
-              • 25 pts/word, +500 to finish, +100/token left
+              • 5 moves to reach the target<br>
+              • +10 pts/word • Clues: -100 pts, no bonuses<br>
+              • No clues: +100 finish bonus, +50/move left
             </div>
             
             <div style="background: #f3f4f6; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
@@ -930,7 +931,6 @@ if (targetWord) {
     let tokens = 5;
     let points = 0;
     let cluesUsed = 0;
-    let nextClueCost = 100;
     let gameCompleted = false;
     let gameStarted = false;
 
@@ -984,17 +984,16 @@ if (targetWord) {
   
   if (currentIndex !== -1 && currentIndex < pathway.length - 1) {
     const nextWord = pathway[currentIndex + 1];
-    
-    // Deduct points (allow negative scores)
-    points -= nextClueCost;
+
+    // Deduct points (flat cost)
+    points -= 100;
     cluesUsed++;
-    nextClueCost += 100; // Increase cost for next clue
-    
+
     // Update display
     renderChain();
-    
+
     const message = document.getElementById("message");
-    message.textContent = `Clue: Try "${nextWord.toUpperCase()}" (Cost: ${nextClueCost - 100} points)`;
+    message.textContent = `Clue: Try "${nextWord.toUpperCase()}" (-100 points)`;
     message.style.color = "#3b82f6";
     
     setTimeout(() => {
@@ -1078,14 +1077,17 @@ function findNextValidWord(fromWord, toWord) {
 
       tokens -= cost;
       chain.push(newWord);
-      points -= cost;  // Subtract the cost of the move
+      points += 10;  // Add 10 points for each valid word
       renderChain();
 
      // When target is reached
 // When target is reached
-if (targetWord && newWord.toLowerCase() === targetWord.toLowerCase()) {        // Add bonus for completion and remaining tokens
-        points += 500; // Completion bonus
-        points += tokens * 100; // Remaining token bonus
+if (targetWord && newWord.toLowerCase() === targetWord.toLowerCase()) {
+        // Only give bonuses if no clues were used
+        if (cluesUsed === 0) {
+          points += 100; // Completion bonus
+          points += tokens * 50; // Remaining token bonus
+        }
         renderChain();
         showVictoryModal(true, true);
         return;
@@ -1106,7 +1108,7 @@ if (targetWord && newWord.toLowerCase() === targetWord.toLowerCase()) {        /
       
       chain.pop();
       tokens += 1; // Always add 1 token back since we only allow 1-token moves
-      points -= 25; // Remove the points for that word
+      points -= 10; // Remove the 10 points earned for that word
       renderChain();
       
       const message = document.getElementById("message");
